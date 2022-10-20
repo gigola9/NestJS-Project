@@ -5,14 +5,17 @@ import { UserNotFoundException } from '../../exceptions/UserNotFound.exception';
 import { HttpExceptionFilter } from '../../filters/HttpException.filter';
 import { UsersService } from '../../services/users/users.service';
 import { SerializedUser } from '../../types';
+import { SkipThrottle, Throttle } from "@nestjs/throttler";
 
 @Controller('users')
 export class UsersController {
 
   constructor(@Inject('USER_SERVICE') private readonly userService: UsersService) {}
 
+  // Skip Rate Limit
   @UseGuards(AuthenticatedGuard)
-  @UseInterceptors(ClassSerializerInterceptor )
+  @UseInterceptors(ClassSerializerInterceptor)
+  @SkipThrottle()
   @Get('')
   getUsers() {
     return this.userService.getUsers();
@@ -26,8 +29,10 @@ export class UsersController {
     else throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
   }
 
+  // Custom Rate Limit
   @UseInterceptors(ClassSerializerInterceptor)
   @UseFilters(HttpExceptionFilter)
+  @Throttle(5, 10)
   @Get('id/:id')
   getById(@Param('id', ParseIntPipe) id: number) {
     const user = this.userService.getUserById(id);
